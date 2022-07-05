@@ -1,0 +1,15 @@
+version: "3.5"
+services:
+  dev:
+    container_name: i-map-to-slack-dev
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    volumes:
+      - ".:/i-map-to-slack"
+      - "./.aws:/root/.aws"
+    environment:
+      - NODE_ENV=development
+    entrypoint: top -b
+    logging:
+      driver: none
