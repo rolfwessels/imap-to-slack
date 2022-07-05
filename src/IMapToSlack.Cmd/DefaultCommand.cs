@@ -1,51 +1,52 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
+using System.Threading.Tasks;
+using IMapToSlack.Core.Components;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
 namespace IMapToSlack.Cmd
 {
-    public sealed class DefaultCommand : Command<DefaultCommand.Settings>
+    public sealed class DefaultCommand : AsyncCommand<DefaultCommand.Arguments>
     {
 
-        public sealed class Settings : CommandSettings
+        public sealed class Arguments : CommandSettings
         {
-            [CommandArgument(0, "[process]")]
-            [Description("The example to run.\nIf none is specified, all examples will be listed")]
+            [CommandArgument(0, "[run]")]
+            [Description("Posting mail to slack.")]
             public string? Name { get; set; }
 
-            [CommandOption("-t|--table")]
-            [Description("Show table")]
-            public bool Table { get; set; }
+            [CommandOption("-m|--max-emails")]
+            [Description("Max emails to check")]
+            public int MaxItems { get; set; } = 10;
 
         }
 
 
-        public override int Execute([NotNull] CommandContext context, [NotNull] Settings settings)
+        public override async Task<int> ExecuteAsync(CommandContext context, Arguments arguments)
         {
-            if (settings.Name == null)
+          
+            if (arguments.Name == null || arguments.Name.ToLower() != "run")
             {
                 AnsiConsole.MarkupLine("Type [blue]--help[/] for help");
                 return 1;
             }
 
-            AnsiConsole.MarkupLine($"[green]Processing `{settings.Name}`.[/]");
-
-            if (settings.Table)
+            switch (arguments.Name.ToLower())
             {
-                var examples = new [] { new  { Test = "test" }, new { Test = "test2" }, }.ToList();
-                var table = new Table { Border = TableBorder.Rounded }.Expand();
-                table.AddColumn(new TableColumn("[yellow]Example[/]") { NoWrap = true, });
-                table.AddColumn(new TableColumn("[grey]Description[/]"));
-            
-                foreach (var group in examples.GroupBy(ex => ex.Test))
-                {
-                    table.AddRow(group.Key,group.Count().ToString());
-                    table.AddEmptyRow();
-                }
-                
-                AnsiConsole.Render(table);
+              case "run":
+                var configuration = ConfigurationFactory.Load();
+                var settings = new Settings(configuration);
+                var slackHook = new MailToSlack(new MailMonitor(settings), new SlackHook(settings));
+              // action
+                int result = 0;
+                await AnsiConsole.Status()
+                  .StartAsync("Reading mail...", async ctx =>
+                  {
+                    result = await slackHook.PostUnreadMessages(arguments.MaxItems);
+                  });
+                AnsiConsole.MarkupLine($"Sent [green]{result}[/] new mail items to slack.");
+                break;
             }
             return 0;
         }

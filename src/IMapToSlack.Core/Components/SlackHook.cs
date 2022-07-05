@@ -28,24 +28,18 @@ public class SlackHook
 
   public static SlackMessage BuildMessage(params MailSummary[] summary)
   {
-    var slackMessage = new SlackMessage();
-
-    ;
-    slackMessage.Attachments = summary.Select(x =>
+    var slackMessage = new SlackMessage
     {
-      var text = $"*{x.Subject}* <{x.Link}:mailbox_with_mail:>";
-      return new SlackAttachment
-      {
-        Fallback = text,
-        Footer = x.From,
-        Text = text,
-        Color = "#00D100"
-      };
-    }).ToList();
-
+      Attachments = summary.Select(ToAttachment).ToList()
+    };
     return slackMessage;
   }
-  
+
+  private static SlackAttachment ToAttachment(MailSummary mail)
+  {
+    var text = $"*{mail.Subject}* <{mail.Link}|:mailbox_with_mail:>";
+    return new SlackAttachment { Fallback = text, Footer = mail.From, Text = text, Color = "#00D100" };
+  }
 }
 
 
