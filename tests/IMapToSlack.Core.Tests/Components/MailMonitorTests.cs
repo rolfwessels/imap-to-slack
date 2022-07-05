@@ -17,7 +17,7 @@ public class MailMonitorTests
     // arrange
     var mailMonitor = new MailMonitor(new Settings(ConfigurationFactory.Load()));
     // action
-    var inboxUnreadMessages = await mailMonitor.GetInboxUnreadMessages();
+    var inboxUnreadMessages = await mailMonitor.GetInboxUnreadMessages(20);
     // assert
     inboxUnreadMessages.Dump("").Should().HaveCountGreaterOrEqualTo(0);
   }

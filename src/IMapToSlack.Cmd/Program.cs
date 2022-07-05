@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading.Tasks;
-using Spectre.Console;
 using Spectre.Console.Cli;
 
 namespace IMapToSlack.Cmd

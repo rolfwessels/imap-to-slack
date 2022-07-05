@@ -14,6 +14,7 @@ namespace IMapToSlack.Core.Components;
 
 public class MailMonitor
 {
+  private readonly Settings _settings;
   private static readonly ILogger _log = Log.ForContext(MethodBase.GetCurrentMethod()!.DeclaringType!);
   private readonly string _host;
   private readonly int _port;
@@ -22,13 +23,14 @@ public class MailMonitor
 
   public MailMonitor(Settings settings)
   {
+    _settings = settings;
     _host = settings.ImapHost;
     _port = settings.ImapPort;
     _userName = settings.ImapUserName;
     _password = settings.ImapPassword;
   }
 
-  public async Task<List<MailSummary>> GetInboxUnreadMessages()
+  public async Task<List<MailSummary>> GetInboxUnreadMessages(int maxRecentMessagesToCheck)
   {
     using var client = new ImapClient();
     await client.ConnectAsync(_host, _port, true);
@@ -37,56 +39,33 @@ public class MailMonitor
     {
       var inbox = client.Inbox;
       await inbox.OpenAsync(FolderAccess.ReadOnly);
-
-      var query = SearchQuery.All;
-      var uids = await inbox.SearchAsync(query);
-      var items = (await inbox.FetchAsync(uids.Reverse().Take(20).ToList(), MessageSummaryItems.Full)).Reverse();
-
-      var mailSummaries = items.Where(item => !item.Flags!.Value.HasFlag(MessageFlags.Seen))
-        .Select(item => new MailSummary(item.Envelope.Subject, item.Envelope.From.OfType<MailboxAddress>().Select(f => f.Address.ToLower()).StringJoin()));
-      return mailSummaries.ToList();
-    }
-    catch (Exception e)
-    {
-        _log.Error(e,e.Message);
-        throw;
+      var items = await QueryFolder(maxRecentMessagesToCheck, inbox);
+      return items
+        .Where(IsUnRead)
+        .Select(ToSummary)
+        .ToList();
     }
     finally{
       await client.DisconnectAsync(true);
-    }
-   
-
-
-
-    
+    } 
   }
-  
-  private void Imap()
+
+  private static async Task<IEnumerable<IMessageSummary>> QueryFolder(int maxRecentMessagesToCheck, IMailFolder inbox)
   {
-    using (var client = new ImapClient())
-    {
-      client.Connect(_host, _port, true);
+    var query = SearchQuery.All;
+    var uids = await inbox.SearchAsync(query);
+    var items = (await inbox.FetchAsync(uids.Reverse().Take(maxRecentMessagesToCheck).ToList(), MessageSummaryItems.Full))
+      .Reverse();
+    return items;
+  }
 
-      client.Authenticate(_userName, _password);
+  private static bool IsUnRead(IMessageSummary item)
+  {
+    return !item.Flags!.Value.HasFlag(MessageFlags.Seen);
+  }
 
-      // The Inbox folder is always available on all IMAP servers...
-      var inbox = client.Inbox;
-      inbox.Open(FolderAccess.ReadOnly);
-
-
-      var query = SearchQuery.All;
-      var uids = inbox.Search(query);
-      var items = inbox.Fetch(uids.Reverse().Take(20).ToList(), MessageSummaryItems.Full ).Reverse();
-
-      items.Where(item=> !item.Flags!.Value.HasFlag(MessageFlags.Seen))
-        .Select(item=>$" {item.Envelope.Subject} {item.Envelope.From.OfType<MailboxAddress>().Select(f=>f.Address.ToLower()).StringJoin()}")
-        .Dump("");
-
-
-
-      client.Disconnect(true);
-    }
+  private MailSummary ToSummary(IMessageSummary item)
+  {
+    return new MailSummary(item.Envelope.Subject, item.Envelope.From.OfType<MailboxAddress>().Select(f => f.Address.ToLower()).StringJoin(), _settings.HostLink);
   }
 }
-
-public record MailSummary(string Subject, string From);
