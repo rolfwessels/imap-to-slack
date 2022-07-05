@@ -17,7 +17,8 @@ public class MailToSlack
   public async Task<int> PostUnreadMessages(int maxRecentMessagesToCheck = 20)
   {
     var unreadMessages = await _mailMonitor.GetInboxUnreadMessages(maxRecentMessagesToCheck);
-    await _slackHook.Send(SlackHook.BuildMessage(unreadMessages.ToArray()));
+    if (unreadMessages.Any())
+      await _slackHook.Send(SlackHook.BuildMessage(unreadMessages.ToArray()));
     return unreadMessages.Count;
   }
 }

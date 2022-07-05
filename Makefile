@@ -2,7 +2,7 @@
 
 # General Variables
 date=$(shell date +'%y.%m.%d.%H.%M')
-project := I map to slack
+project := Imap to slack
 container := dev
 docker-filecheck := /.dockerenv
 docker-warning := ""
@@ -15,9 +15,9 @@ shorthash := $(shell git rev-parse --short=8 HEAD)
 version-suffix := ''
 dockerhub := dockerhub.com/i-map-to-slack
 
-release := 'development'
+release := development
 ifeq ($(env), release)
-	release := 'production'
+	release := production
 	version-suffix:= ""
 endif
 
@@ -32,7 +32,7 @@ endif
 ifeq ($(current-branch), main)
 	docker-tags := -t $(dockerhub):alpha -t $(dockerhub):latest -t $(dockerhub):v$(version) -t $(dockerhub):$(shorthash)
 else
-	version := $(versionPrefix).$(shell git rev-list origin/main --count).$(shell git rev-list origin/main..HEAD --count)
+	version := $(versionPrefix).$(shell git rev-list main --count).$(shell git rev-list main..HEAD --count)
 	version-suffix := alpha
 	docker-tags := -t $(dockerhub):$(version-suffix) -t $(dockerhub):$(shorthash) -t $(dockerhub):v$(version)-$(version-suffix)
 endif
@@ -85,25 +85,25 @@ build: down
 	@docker-compose build
 
 version:
-	@echo "${GREEN}Setting version number $(version) ${NC}"
+	@echo "Setting version number ${GREEN} $(version) ${NC}"
 	@echo '{ "version": "${version}" }' > src/version.json
 
 
 start: docker-check
-	@echo -e "${GREEN}Starting the $(release) release of $(project)${NC}"
+	@echo -e "Starting the $(release) release of ${GREEN}$(project)${NC}"
 	@cd src/IMapToSlack.Cmd; dotnet run -- --help
 
 test: docker-check
-	@echo -e "${GREEN}Testing v${version} of $(release) release${NC}"
+	@echo -e "Testing ${GREEN}v${version}${NC} of ${GREEN}$(release)${NC} release"
 	@dotnet test ./tests/* --collect:"XPlat Code Coverage"
 
 deploy: docker-check env-check
-	@echo -e "${GREEN}Deploying v${version} of $(release) release${NC}"
+	@echo -e "Deploying ${GREEN}v${version}${NC} of ${GREEN}$(release)${NC} release"
 	@dotnet test ./tests/*
 
 publish: docker-check env-check
-	@echo -e "${GREEN}Building the $(release) release of $(project)${NC}"
-	@dotnet publish src/IMapToSlack.Cmd/IMapToSlack.Cmd.csproj -r linux-x64 -p:PublishSingleFile=true --self-contained true --output ./dist/$(release)/linux-x64
+	@echo -e "Building the ${GREEN}v${version}${NC} of ${GREEN}$(release)${NC} release"
+	@dotnet publish src/IMapToSlack.Cmd/IMapToSlack.Cmd.csproj -r linux-x64 -p:PublishSingleFile=true --self-contained true -p:VersionSuffix=$(version-suffix)  -p:FileVersion=$(version) -p:VersionPrefix=$(version) --output ./dist/$(release)/linux-x64
 	@dotnet publish src/IMapToSlack.Cmd/IMapToSlack.Cmd.csproj -r win-x64 -p:PublishSingleFile=true --self-contained true -p:VersionSuffix=$(version-suffix)  -p:FileVersion=$(version) -p:VersionPrefix=$(version)  --output ./dist/$(release)/win-x64
 
 docker-check:
