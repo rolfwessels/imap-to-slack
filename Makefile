@@ -103,8 +103,8 @@ deploy: docker-check env-check
 
 publish: docker-check env-check
 	@echo -e "Building the ${GREEN}v${version}${NC} of ${GREEN}$(release)${NC} release"
-	@dotnet publish src/IMapToSlack.Cmd/IMapToSlack.Cmd.csproj -r linux-x64 -p:PublishSingleFile=true --self-contained true -p:VersionSuffix=$(version-suffix)  -p:FileVersion=$(version) -p:VersionPrefix=$(version) --output ./dist/$(release)/linux-x64
-	@dotnet publish src/IMapToSlack.Cmd/IMapToSlack.Cmd.csproj -r win-x64 -p:PublishSingleFile=true --self-contained true -p:VersionSuffix=$(version-suffix)  -p:FileVersion=$(version) -p:VersionPrefix=$(version)  --output ./dist/$(release)/win-x64
+	@dotnet publish src/IMapToSlack.Cmd/IMapToSlack.Cmd.csproj -r linux-x64 -p:PublishSingleFile=true -p:PublishTrimmed=true --self-contained true -p:VersionSuffix=$(version-suffix)  -p:FileVersion=$(version) -p:VersionPrefix=$(version) --output ./dist/$(release)/linux-x64
+	@dotnet publish src/IMapToSlack.Cmd/IMapToSlack.Cmd.csproj -r win-x64 -p:PublishSingleFile=true -p:PublishTrimmed=true --self-contained true -p:VersionSuffix=$(version-suffix)  -p:FileVersion=$(version) -p:VersionPrefix=$(version)  --output ./dist/$(release)/win-x64
 
 docker-check:
 	$(call assert-file-exists,$(docker-filecheck), This step should only be run from Docker. Please run `make up` first.)
